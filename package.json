@@ -1,0 +1,47 @@
+{
+  "name": "save-nondefault-container-cookies-webextension",
+  "displayName": "Keep container cookies",
+  "version": "1.0.0",
+  "description": "A firefox extension to save and restore cookies in non-default containers.",
+  "author": "losnappas <hanu6@hotmail.com>",
+  "scripts": {
+    "dev": "plasmo dev --target=firefox-mv2",
+    "start": "web-ext run -s build/firefox-mv2-dev/ -f firefox-developer-edition --devtools --start-url about:debugging#/runtime/this-firefox",
+    "build": "plasmo build --target=firefox-mv2",
+    "package": "plasmo package --target=firefox-mv2"
+  },
+  "dependencies": {
+    "@react-hookz/web": "^25.1.0",
+    "plasmo": "0.90.3",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "webextension-polyfill": "^0.12.0"
+  },
+  "devDependencies": {
+    "@ianvs/prettier-plugin-sort-imports": "4.1.1",
+    "@types/chrome": "0.0.258",
+    "@types/node": "20.11.5",
+    "@types/react": "18.2.48",
+    "@types/react-dom": "18.2.18",
+    "@types/webextension-polyfill": "^0.12.3",
+    "prettier": "3.2.4",
+    "svgo": "^3.3.2",
+    "typescript": "5.3.3",
+    "web-ext": "^8.4.0"
+  },
+  "manifest": {
+    "permissions": [
+      "tabs",
+      "cookies",
+      "storage"
+    ],
+    "host_permissions": [
+      "https://*/*"
+    ],
+    "browser_specific_settings": {
+      "gecko": {
+        "id": "save-nondefault-cookies@losnappas.local"
+      }
+    }
+  }
+}
