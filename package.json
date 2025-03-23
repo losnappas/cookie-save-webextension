@@ -8,7 +8,7 @@
     "dev": "plasmo dev --target=firefox-mv2",
     "start": "web-ext run -s build/firefox-mv2-dev/ -f firefox-developer-edition --devtools --start-url about:debugging#/runtime/this-firefox",
     "build": "plasmo build --target=firefox-mv2",
-    "package": "plasmo package --target=firefox-mv2"
+    "package": "plasmo package --target=firefox-mv2 && git archive --format=zip --output=build/archive.zip main"
   },
   "dependencies": {
     "@react-hookz/web": "^25.1.0",
