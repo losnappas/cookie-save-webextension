@@ -15,15 +15,20 @@ async function restoreCookies() {
   const storedCookies = (await browser.storage.local.get()) || {}
 
   for (const key in storedCookies) {
-    const cookie = storedCookies[key] as browser.Cookies.Cookie
-    if (ignoredDomains.includes(cookie.domain)) {
-      console.log(
-        `Cookie ${cookie.name} from ignored domain ${cookie.domain}, skipping`
-      )
-      continue
-    }
-
     try {
+      const cookie = storedCookies[key] as browser.Cookies.Cookie
+      if (!cookie.domain) {
+        continue
+      }
+      if (ignoredDomains.includes(cookie.domain)) {
+        console.log(
+          `Cookie ${cookie.name} from ignored domain ${cookie.domain}, skipping`
+        )
+        continue
+      }
+      if (!cookie.expirationDate || cookie.expirationDate < Math.floor(Date.now() / 1000)) {
+        continue
+      }
       await browser.cookies.set({
         name: cookie.name,
         url: `https://${cookie.domain}${cookie.path}`,
