@@ -53,7 +53,6 @@ browser.runtime.onStartup.addListener(async () => {
 browser.storage.onChanged.addListener(async (changes, areaName) => {
   if (areaName === "local" && changes.ignoredDomains) {
     await updateIgnoredDomains()
-    await restoreCookies()
   }
 })
 
