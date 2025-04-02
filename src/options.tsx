@@ -28,9 +28,9 @@ const Options = () => {
   }
 
   const clearStorage = async () => {
-    const saveStorage = await browser.storage.local.get("allowedDomains");
-    await browser.storage.local.clear();
-    await browser.storage.local.set({ "allowedDomains": saveStorage });
+    const saveStorage = await browser.storage.local.get("allowedDomains")
+    await browser.storage.local.clear()
+    await browser.storage.local.set({ allowedDomains: saveStorage })
   }
 
   return (

@@ -17,7 +17,11 @@ async function restoreCookies() {
   for (const key in storedCookies) {
     try {
       const cookie = storedCookies[key] as browser.Cookies.Cookie
-      if (!cookie.domain || !cookie.expirationDate || cookie.expirationDate < Math.floor(Date.now() / 1000)) {
+      if (
+        !cookie.domain ||
+        !cookie.expirationDate ||
+        cookie.expirationDate < Math.floor(Date.now() / 1000)
+      ) {
         continue
       }
       if (!allowedDomains.includes(cookie.domain)) {
@@ -78,15 +82,15 @@ browser.cookies.onChanged.addListener((changeInfo) => {
 })
 
 browser.browserAction.onClicked.addListener(async () => {
-  const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-  const currentTab = tabs[0];
+  const tabs = await browser.tabs.query({ active: true, currentWindow: true })
+  const currentTab = tabs[0]
   if (!currentTab || !currentTab.url) {
-    console.error("No current tab or URL found.");
-    return;
+    console.error("No current tab or URL found.")
+    return
   }
 
-  const url = new URL(currentTab.url);
-  const domain = url.hostname;
+  const url = new URL(currentTab.url)
+  const domain = url.hostname
 
   const result = await browser.storage.local.get("allowedDomains")
   let allowedDomains = (result.allowedDomains as string[]) || []
@@ -98,4 +102,4 @@ browser.browserAction.onClicked.addListener(async () => {
   } else {
     console.log(`${domain} is already in allowed domains.`)
   }
-});
+})
