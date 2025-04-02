@@ -2,13 +2,13 @@ import browser from "webextension-polyfill"
 
 import { getCookieKey } from "~src/util"
 
-let ignoredDomains: string[] = []
+let allowedDomains: string[] = []
 
-async function updateIgnoredDomains() {
-  ignoredDomains =
-    ((await browser.storage.local.get("ignoredDomains"))
-      .ignoredDomains as string[]) || []
-  console.log("Ignored domains updated:", ignoredDomains)
+async function updateAllowedDomains() {
+  allowedDomains =
+    ((await browser.storage.local.get("allowedDomains"))
+      .allowedDomains as string[]) || []
+  console.log("Allowed domains updated:", allowedDomains)
 }
 
 async function restoreCookies() {
@@ -17,16 +17,10 @@ async function restoreCookies() {
   for (const key in storedCookies) {
     try {
       const cookie = storedCookies[key] as browser.Cookies.Cookie
-      if (!cookie.domain) {
+      if (!cookie.domain || !cookie.expirationDate || cookie.expirationDate < Math.floor(Date.now() / 1000)) {
         continue
       }
-      if (ignoredDomains.includes(cookie.domain)) {
-        console.log(
-          `Cookie ${cookie.name} from ignored domain ${cookie.domain}, skipping`
-        )
-        continue
-      }
-      if (!cookie.expirationDate || cookie.expirationDate < Math.floor(Date.now() / 1000)) {
+      if (!allowedDomains.includes(cookie.domain)) {
         continue
       }
       await browser.cookies.set({
@@ -51,13 +45,13 @@ async function restoreCookies() {
 }
 
 browser.runtime.onStartup.addListener(async () => {
-  await updateIgnoredDomains()
+  await updateAllowedDomains()
   await restoreCookies()
 })
 
 browser.storage.onChanged.addListener(async (changes, areaName) => {
-  if (areaName === "local" && changes.ignoredDomains) {
-    await updateIgnoredDomains()
+  if (areaName === "local" && changes.allowedDomains) {
+    await updateAllowedDomains()
   }
 })
 
@@ -66,7 +60,10 @@ browser.cookies.onChanged.addListener((changeInfo) => {
   const key = getCookieKey(cookie)
 
   if (cookie.storeId === "firefox-default") {
-    console.log(`Cookie ${cookie.name} from default container, skipping`)
+    return
+  }
+
+  if (!allowedDomains.includes(cookie.domain)) {
     return
   }
 
@@ -79,3 +76,26 @@ browser.cookies.onChanged.addListener((changeInfo) => {
     console.log(`Cookie ${cookie.name} updated in storage`)
   }
 })
+
+browser.browserAction.onClicked.addListener(async () => {
+  const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+  const currentTab = tabs[0];
+  if (!currentTab || !currentTab.url) {
+    console.error("No current tab or URL found.");
+    return;
+  }
+
+  const url = new URL(currentTab.url);
+  const domain = url.hostname;
+
+  const result = await browser.storage.local.get("allowedDomains")
+  let allowedDomains = (result.allowedDomains as string[]) || []
+
+  if (!allowedDomains.includes(domain)) {
+    allowedDomains = [...allowedDomains, domain]
+    await browser.storage.local.set({ allowedDomains: allowedDomains })
+    console.log(`Added ${domain} to allowed domains.`)
+  } else {
+    console.log(`${domain} is already in allowed domains.`)
+  }
+});

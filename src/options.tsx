@@ -6,8 +6,8 @@ const Options = () => {
 
   useEffect(() => {
     const getDomains = async () => {
-      const result = await browser.storage.local.get("ignoredDomains")
-      const storedDomains = (result.ignoredDomains as string[]) || []
+      const result = await browser.storage.local.get("allowedDomains")
+      const storedDomains = (result.allowedDomains as string[]) || []
       setText(storedDomains.join("\\n"))
     }
 
@@ -23,16 +23,22 @@ const Options = () => {
       .split("\\n")
       .map((domain) => domain.trim())
       .filter((domain) => domain !== "")
-    await browser.storage.local.set({ ignoredDomains: newDomains })
+    await browser.storage.local.set({ allowedDomains: newDomains })
     console.log("Domains saved:", newDomains)
+  }
+
+  const clearStorage = async () => {
+    const saveStorage = await browser.storage.local.get("allowedDomains");
+    await browser.storage.local.clear();
+    await browser.storage.local.set({ "allowedDomains": saveStorage });
   }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
       <div>
-        <h1>Ignored domains</h1>
+        <h1>Allowed domains</h1>
         <p>
-          Ignored domains will not have their cookies restored by the extension.
+          Allowed domains will have their cookies restored by the extension.
         </p>
         <p>Domain without "https://".</p>
       </div>
@@ -44,7 +50,8 @@ google.com`}
         rows={10}
         cols={50}
       />
-      <button onClick={saveDomains}>Save Ignored Domains</button>
+      <button onClick={saveDomains}>Save Allowed Domains</button>
+      <button onClick={clearStorage}>Clear All Saved Cookies</button>
     </div>
   )
 }

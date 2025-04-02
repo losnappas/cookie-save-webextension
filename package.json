@@ -1,7 +1,7 @@
 {
   "name": "save-nondefault-container-cookies-webextension",
   "displayName": "Keep container cookies",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "A firefox extension to save and restore cookies in non-default containers.",
   "author": "losnappas <hanu6@hotmail.com>",
   "scripts": {
@@ -38,6 +38,12 @@
     "host_permissions": [
       "https://*/*"
     ],
+    "browser_action": {
+      "default_icon": {
+        "16": "/assets/icon.png",
+        "32": "/assets/icon.png"
+      }
+    },
     "browser_specific_settings": {
       "gecko": {
         "id": "save-nondefault-cookies@losnappas.local"
