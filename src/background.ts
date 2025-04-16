@@ -61,7 +61,6 @@ browser.storage.onChanged.addListener(async (changes, areaName) => {
 
 browser.cookies.onChanged.addListener((changeInfo) => {
   const { cookie, removed } = changeInfo
-  const key = getCookieKey(cookie)
 
   if (cookie.storeId === "firefox-default") {
     return
@@ -72,11 +71,11 @@ browser.cookies.onChanged.addListener((changeInfo) => {
   }
 
   if (removed) {
+    const key = getCookieKey(cookie)
     browser.storage.local.remove(key)
     console.log(`Cookie ${cookie.name} removed from storage`)
   } else {
-    // Cookie was changed, update it in storage
-    browser.storage.local.set({ [key]: cookie })
+    storeCookie(cookie)
     console.log(`Cookie ${cookie.name} updated in storage`)
   }
 })
@@ -102,4 +101,21 @@ browser.browserAction.onClicked.addListener(async () => {
   } else {
     console.log(`${domain} is already in allowed domains.`)
   }
+  const cookies = await browser.cookies.getAll({
+    url: currentTab.url
+  })
+  cookies.forEach(storeCookie)
 })
+
+async function storeCookie(cookie: browser.Cookies.Cookie) {
+  if (cookie.storeId === "firefox-default") {
+    return
+  }
+  if (!allowedDomains.includes(cookie.domain)) {
+    return
+  }
+  const key = getCookieKey(cookie)
+  // Cookie was changed, update it in storage
+  browser.storage.local.set({ [key]: cookie })
+  console.log(`Cookie ${cookie.name} updated in storage`)
+}

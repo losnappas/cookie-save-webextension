@@ -8,7 +8,7 @@ const Options = () => {
     const getDomains = async () => {
       const result = await browser.storage.local.get("allowedDomains")
       const storedDomains = (result.allowedDomains as string[]) || []
-      setText(storedDomains.join("\\n"))
+      setText(storedDomains.join("\n"))
     }
 
     getDomains()
@@ -20,7 +20,7 @@ const Options = () => {
 
   const saveDomains = async () => {
     const newDomains = text
-      .split("\\n")
+      .split("\n")
       .map((domain) => domain.trim())
       .filter((domain) => domain !== "")
     await browser.storage.local.set({ allowedDomains: newDomains })
