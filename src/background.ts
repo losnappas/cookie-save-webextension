@@ -2,15 +2,6 @@ import browser from "webextension-polyfill"
 
 import { getCookieKey } from "~src/util"
 
-let allowedDomains: string[] = []
-
-async function updateAllowedDomains() {
-  allowedDomains =
-    ((await browser.storage.local.get("allowedDomains"))
-      .allowedDomains as string[]) || []
-  console.log("Allowed domains updated:", allowedDomains)
-}
-
 async function restoreCookies() {
   const storedCookies = (await browser.storage.local.get()) || {}
 
@@ -22,9 +13,6 @@ async function restoreCookies() {
         !cookie.expirationDate ||
         cookie.expirationDate < Math.floor(Date.now() / 1000)
       ) {
-        continue
-      }
-      if (!allowedDomains.includes(cookie.domain)) {
         continue
       }
       await browser.cookies.set({
@@ -49,35 +37,19 @@ async function restoreCookies() {
 }
 
 browser.runtime.onStartup.addListener(async () => {
-  await updateAllowedDomains()
   await restoreCookies()
 })
 
-browser.storage.onChanged.addListener(async (changes, areaName) => {
-  if (areaName === "local" && changes.allowedDomains) {
-    await updateAllowedDomains()
-  }
-})
-
 browser.cookies.onChanged.addListener((changeInfo) => {
-  const { cookie, removed } = changeInfo
+  const { cookie } = changeInfo
 
   if (cookie.storeId === "firefox-default") {
     return
   }
 
-  if (!allowedDomains.includes(cookie.domain)) {
-    return
-  }
-
-  if (removed) {
-    const key = getCookieKey(cookie)
-    browser.storage.local.remove(key)
-    console.log(`Cookie ${cookie.name} removed from storage`)
-  } else {
-    storeCookie(cookie)
-    console.log(`Cookie ${cookie.name} updated in storage`)
-  }
+  const key = getCookieKey(cookie)
+  browser.storage.local.remove(key)
+  console.log(`Cookie ${cookie.name} removed from storage`)
 })
 
 browser.browserAction.onClicked.addListener(async () => {
@@ -88,30 +60,16 @@ browser.browserAction.onClicked.addListener(async () => {
     return
   }
 
-  const url = new URL(currentTab.url)
-  const domain = url.hostname
-
-  const result = await browser.storage.local.get("allowedDomains")
-  let allowedDomains = (result.allowedDomains as string[]) || []
-
-  if (!allowedDomains.includes(domain)) {
-    allowedDomains = [...allowedDomains, domain]
-    await browser.storage.local.set({ allowedDomains: allowedDomains })
-    console.log(`Added ${domain} to allowed domains.`)
-  } else {
-    console.log(`${domain} is already in allowed domains.`)
-  }
   const cookies = await browser.cookies.getAll({
-    url: currentTab.url
+    url: currentTab.url,
+    storeId: currentTab.cookieStoreId,
+    session: false,
   })
   cookies.forEach(storeCookie)
 })
 
 async function storeCookie(cookie: browser.Cookies.Cookie) {
   if (cookie.storeId === "firefox-default") {
-    return
-  }
-  if (!allowedDomains.includes(cookie.domain)) {
     return
   }
   const key = getCookieKey(cookie)

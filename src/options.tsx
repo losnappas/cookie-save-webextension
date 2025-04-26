@@ -1,56 +1,117 @@
 import React, { useEffect, useState } from "react"
 import browser from "webextension-polyfill"
+import { getCookieKey } from "./util"
 
 const Options = () => {
-  const [text, setText] = useState("")
+  const [cookies, setCookies] = useState<browser.Cookies.Cookie[]>([])
+
+  const fetchAndSetCookies = async () => {
+    const storedData = await browser.storage.local.get()
+    const cookieList: browser.Cookies.Cookie[] = []
+
+    for (const key in storedData) {
+      const cookie = storedData[key] as browser.Cookies.Cookie
+      // Basic check to ensure it looks like a cookie object
+      if (
+        cookie &&
+        typeof cookie.name === "string" &&
+        typeof cookie.domain === "string"
+      ) {
+        cookieList.push(cookie)
+      }
+    }
+    setCookies(cookieList)
+    console.log("Fetched cookies:", cookieList)
+  }
 
   useEffect(() => {
-    const getDomains = async () => {
-      const result = await browser.storage.local.get("allowedDomains")
-      const storedDomains = (result.allowedDomains as string[]) || []
-      setText(storedDomains.join("\n"))
-    }
-
-    getDomains()
+    fetchAndSetCookies() // Fetch cookies on component mount
   }, [])
 
-  const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setText(event.target.value)
-  }
-
-  const saveDomains = async () => {
-    const newDomains = text
-      .split("\n")
-      .map((domain) => domain.trim())
-      .filter((domain) => domain !== "")
-    await browser.storage.local.set({ allowedDomains: newDomains })
-    console.log("Domains saved:", newDomains)
-  }
-
   const clearStorage = async () => {
-    const saveStorage = await browser.storage.local.get("allowedDomains")
+    // Clear all items from storage
     await browser.storage.local.clear()
-    await browser.storage.local.set({ allowedDomains: saveStorage })
+    console.log("Storage cleared.")
+    // Refetch cookies to update the display (should be empty now)
+    fetchAndSetCookies()
+  }
+
+  // Function to handle deleting a single cookie
+  const handleDeleteCookie = async (cookieKey: string) => {
+    try {
+      await browser.storage.local.remove(cookieKey)
+      console.log(`Cookie with key ${cookieKey} deleted.`)
+      // Refetch cookies to update the display
+      fetchAndSetCookies()
+    } catch (error) {
+      console.error(`Error deleting cookie with key ${cookieKey}:`, error)
+    }
+  }
+
+  // Helper to format expiration date
+  const formatExpirationDate = (timestamp?: number) => {
+    if (!timestamp) return "Session"
+    const date = new Date(timestamp * 1000)
+    return date.toLocaleString()
   }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
       <div>
-        <h1>Allowed domains</h1>
-        <p>
-          Allowed domains will have their cookies restored by the extension.
-        </p>
-        <p>Domain without "https://".</p>
+        <h1>Stored Cookies</h1>
+        <p>These are the cookies currently stored by the extension.</p>
       </div>
-      <textarea
-        value={text}
-        placeholder={`en.wikipedia.org
-google.com`}
-        onChange={handleChange}
-        rows={10}
-        cols={50}
-      />
-      <button onClick={saveDomains}>Save Allowed Domains</button>
+
+      {cookies.length === 0 ? (
+        <p>No cookies stored yet.</p>
+      ) : (
+        <table style={{ borderCollapse: "collapse", width: "100%" }}>
+          <thead>
+            <tr style={{ borderBottom: "1px solid #ccc" }}>
+              <th style={{ textAlign: "left", padding: "8px" }}>Key</th>
+              <th style={{ textAlign: "left", padding: "8px" }}>Name</th>
+              <th style={{ textAlign: "left", padding: "8px" }}>Domain</th>
+              <th style={{ textAlign: "left", padding: "8px" }}>Path</th>
+              <th style={{ textAlign: "left", padding: "8px" }}>Value</th>
+              <th style={{ textAlign: "left", padding: "8px" }}>Expires</th>
+              <th style={{ textAlign: "left", padding: "8px" }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cookies.map((cookie) => {
+              const cookieKey = getCookieKey(cookie)
+              return (
+                <tr key={cookieKey} style={{ borderBottom: "1px solid #eee" }}>
+                  <td style={{ padding: "8px", wordBreak: "break-all" }}>
+                    {cookieKey}
+                  </td>
+                  <td style={{ padding: "8px", wordBreak: "break-all" }}>
+                    {cookie.name}
+                  </td>
+                  <td style={{ padding: "8px", wordBreak: "break-all" }}>
+                    {cookie.domain}
+                  </td>
+                  <td style={{ padding: "8px", wordBreak: "break-all" }}>
+                    {cookie.path}
+                  </td>
+                  <td style={{ padding: "8px", wordBreak: "break-all" }}>
+                    {cookie.value}
+                  </td>
+                  <td style={{ padding: "8px", wordBreak: "break-all" }}>
+                    {formatExpirationDate(cookie.expirationDate)}
+                  </td>
+                  <td style={{ padding: "8px" }}> {/* New Data Cell */}
+                    <button type="button" onClick={() => handleDeleteCookie(cookieKey)}>
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      )}
+
       <button onClick={clearStorage}>Clear All Saved Cookies</button>
     </div>
   )
