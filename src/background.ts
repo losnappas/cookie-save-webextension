@@ -1,13 +1,13 @@
 import browser from "webextension-polyfill"
 
-import { getCookieKey } from "~src/util"
+import { getCookieKey, type UrledCookie } from "~src/util"
 
 async function restoreCookies() {
   const storedCookies = (await browser.storage.local.get()) || {}
 
   for (const key in storedCookies) {
     try {
-      const cookie = storedCookies[key] as browser.Cookies.Cookie
+      const cookie = storedCookies[key] as UrledCookie
       if (
         !cookie.domain ||
         !cookie.expirationDate ||
@@ -17,7 +17,7 @@ async function restoreCookies() {
       }
       await browser.cookies.set({
         name: cookie.name,
-        url: `https://${cookie.domain}${cookie.path}`,
+        url: cookie.url,
         domain: cookie.domain,
         expirationDate: cookie.expirationDate,
         firstPartyDomain: cookie.firstPartyDomain,
@@ -36,14 +36,16 @@ async function restoreCookies() {
   }
 }
 
+let cookiesRestored = false
 browser.runtime.onStartup.addListener(async () => {
   await restoreCookies()
+  cookiesRestored = true
 })
 
 browser.cookies.onChanged.addListener((changeInfo) => {
   const { cookie } = changeInfo
 
-  if (cookie.storeId === "firefox-default") {
+  if (cookie.storeId === "firefox-default" || !cookiesRestored) {
     return
   }
 
@@ -55,6 +57,7 @@ browser.cookies.onChanged.addListener((changeInfo) => {
 browser.browserAction.onClicked.addListener(async () => {
   const tabs = await browser.tabs.query({ active: true, currentWindow: true })
   const currentTab = tabs[0]
+  const url = currentTab.url
   if (!currentTab || !currentTab.url) {
     console.error("No current tab or URL found.")
     return
@@ -63,12 +66,12 @@ browser.browserAction.onClicked.addListener(async () => {
   const cookies = await browser.cookies.getAll({
     url: currentTab.url,
     storeId: currentTab.cookieStoreId,
-    session: false,
+    session: false
   })
-  cookies.forEach(storeCookie)
+  cookies.forEach((c) => storeCookie({ ...c, url }))
 })
 
-async function storeCookie(cookie: browser.Cookies.Cookie) {
+async function storeCookie(cookie: UrledCookie) {
   if (cookie.storeId === "firefox-default") {
     return
   }
