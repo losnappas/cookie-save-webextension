@@ -18,7 +18,7 @@ async function restoreCookies() {
       await browser.cookies.set({
         name: cookie.name,
         url: cookie.url,
-        domain: cookie.domain,
+        domain: cookie.hostOnly ? undefined : cookie.domain,
         expirationDate: cookie.expirationDate,
         firstPartyDomain: cookie.firstPartyDomain,
         httpOnly: cookie.httpOnly,
@@ -42,16 +42,25 @@ browser.runtime.onStartup.addListener(async () => {
   cookiesRestored = true
 })
 
-browser.cookies.onChanged.addListener((changeInfo) => {
-  const { cookie } = changeInfo
+browser.cookies.onChanged.addListener(async (changeInfo) => {
+  const { cookie, removed } = changeInfo
 
   if (cookie.storeId === "firefox-default" || !cookiesRestored) {
     return
   }
 
   const key = getCookieKey(cookie)
-  browser.storage.local.remove(key)
-  console.log(`Cookie ${cookie.name} removed from storage`)
+  if (removed) {
+    browser.storage.local.remove(key)
+    console.log(`Cookie ${key} removed from storage`)
+  } else {
+    let url = `https://${cookie.domain}${cookie.path}`
+    await storeCookie({
+      ...cookie,
+      url,
+    });
+    console.log(`Cookie ${key} updated in storage`)
+  }
 })
 
 browser.browserAction.onClicked.addListener(async () => {
@@ -77,6 +86,6 @@ async function storeCookie(cookie: UrledCookie) {
   }
   const key = getCookieKey(cookie)
   // Cookie was changed, update it in storage
-  browser.storage.local.set({ [key]: cookie })
+  await browser.storage.local.set({ [key]: cookie })
   console.log(`Cookie ${cookie.name} updated in storage`)
 }
