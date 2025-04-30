@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react"
 import browser from "webextension-polyfill"
+
 import { getCookieKey } from "./util"
 
 const Options = () => {
@@ -100,8 +101,12 @@ const Options = () => {
                   <td style={{ padding: "8px", wordBreak: "break-all" }}>
                     {formatExpirationDate(cookie.expirationDate)}
                   </td>
-                  <td style={{ padding: "8px" }}> {/* New Data Cell */}
-                    <button type="button" onClick={() => handleDeleteCookie(cookieKey)}>
+                  <td style={{ padding: "8px" }}>
+                    {" "}
+                    {/* New Data Cell */}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCookie(cookieKey)}>
                       Delete
                     </button>
                   </td>

@@ -53,6 +53,7 @@
               nodejs
               typescript-language-server
               vscode-langservers-extracted
+              package-version-server
               just
             ];
             env = {

@@ -1,13 +1,13 @@
 import browser from "webextension-polyfill"
 
-import { getCookieKey, type UrledCookie } from "~src/util"
+import { getCookieKey } from "~src/util"
 
 async function restoreCookies() {
   const storedCookies = (await browser.storage.local.get()) || {}
 
   for (const key in storedCookies) {
     try {
-      const cookie = storedCookies[key] as UrledCookie
+      const cookie = storedCookies[key] as browser.Cookies.Cookie
       if (
         !cookie.domain ||
         !cookie.expirationDate ||
@@ -17,8 +17,8 @@ async function restoreCookies() {
       }
       await browser.cookies.set({
         name: cookie.name,
-        url: cookie.url,
-        domain: cookie.domain,
+        url: `https://${cookie.domain}${cookie.path}`,
+        domain: cookie.hostOnly ? undefined : cookie.domain,
         expirationDate: cookie.expirationDate,
         firstPartyDomain: cookie.firstPartyDomain,
         httpOnly: cookie.httpOnly,
@@ -29,7 +29,7 @@ async function restoreCookies() {
         storeId: cookie.storeId,
         value: cookie.value
       })
-      console.log(`Cookie ${cookie.name} restored`)
+      console.log(`Cookie ${key} restored`)
     } catch (error) {
       console.error(`Failed to restore cookie '${key}': ${error}`)
     }
@@ -68,10 +68,10 @@ browser.browserAction.onClicked.addListener(async () => {
     storeId: currentTab.cookieStoreId,
     session: false
   })
-  cookies.forEach((c) => storeCookie({ ...c, url }))
+  cookies.forEach((c) => storeCookie(c))
 })
 
-async function storeCookie(cookie: UrledCookie) {
+async function storeCookie(cookie: browser.Cookies.Cookie) {
   if (cookie.storeId === "firefox-default") {
     return
   }
