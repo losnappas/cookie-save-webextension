@@ -13,6 +13,7 @@ async function restoreCookies() {
         !cookie.expirationDate ||
         cookie.expirationDate < Math.floor(Date.now() / 1000)
       ) {
+        browser.storage.local.remove(key)
         continue
       }
       await browser.cookies.set({
@@ -43,15 +44,20 @@ browser.runtime.onStartup.addListener(async () => {
 })
 
 browser.cookies.onChanged.addListener((changeInfo) => {
-  const { cookie } = changeInfo
+  const { cookie, removed } = changeInfo
 
   if (cookie.storeId === "firefox-default" || !cookiesRestored) {
     return
   }
 
   const key = getCookieKey(cookie)
-  browser.storage.local.remove(key)
-  console.log(`Cookie ${cookie.name} removed from storage`)
+  if (removed) {
+    browser.storage.local.remove(key)
+    console.log(`Cookie ${key} removed from storage`)
+  } else {
+    storeCookie(cookie)
+    console.log(`Cookie ${key} updated`)
+  }
 })
 
 browser.browserAction.onClicked.addListener(async () => {
